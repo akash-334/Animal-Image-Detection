@@ -15,10 +15,15 @@ def predict_tflite(interpreter, img_array):
     input_index = interpreter.get_input_details()[0]["index"]
     output_index = interpreter.get_output_details()[0]["index"]
 
+    # Set input tensor
     interpreter.set_tensor(input_index, img_array)
+    
+    # Invoke the interpreter to run inference
     interpreter.invoke()
+    
+    # Get the output
     prediction = interpreter.get_tensor(output_index)
-    return prediction[0][0]
+    return prediction
 
 # Initialize Streamlit app
 st.title("Cat and Dog Classifier")
@@ -38,17 +43,17 @@ if uploaded_file is not None:
 
     # Preprocess the image for prediction
     st.write("Classifying...")
-    img = image.resize((150, 150))
-    img_array = img_to_array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0).astype(np.float32)
+    img = image.resize((150, 150))  # Resize the image to the model's expected input size
+    img_array = img_to_array(img) / 255.0  # Normalize image to [0, 1]
+    img_array = np.expand_dims(img_array, axis=0).astype(np.float32)  # Add batch dimension
 
     # Load and predict using the TensorFlow Lite model
-    interpreter = load_tflite_model(r'C:\Users\91898\Detection.tflite')
+    interpreter = load_tflite_model('Detection_quantized.tflite')
     prediction = predict_tflite(interpreter, img_array)
     
     # Interpret the result
-    class_name = "Dog" if prediction > 0.5 else "Cat"
-    confidence = prediction if class_name == "Dog" else 1 - prediction
+    class_name = "Dog" if prediction[0][0] > 0.5 else "Cat"
+    confidence = prediction[0][0] if class_name == "Dog" else 1 - prediction[0][0]
     
     st.write(f"Prediction: **{class_name}**")
     st.write(f"Confidence: **{confidence * 100:.2f}%**")
